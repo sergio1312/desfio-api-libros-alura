@@ -1,21 +1,31 @@
 package com.alura.challenge_libros.model;
 
+import jakarta.persistence.*;
+
 import java.util.List;
 
+@Entity
+@Table(name = "libro")
 public class Libro {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "libro_id")
     private Long id;
     private String titulo;
-    private List<Autor> autores;
-    private List<String> idiomas;
+    @ManyToOne
+    @JoinColumn(name = "autor_id")
+    private Autor autor;
+    private String idiomas;
     private Integer numDescargas;
 
 
     public Libro(){}
 
-    public Libro(DatosLibros datosLibros) {
+    public Libro(DatosLibros datosLibros, Autor autor) {
         this.titulo = datosLibros.titulo();
-        this.idiomas = datosLibros.idiomas();
+        this.idiomas = datosLibros.idiomas().get(0).toUpperCase();
         this.numDescargas = datosLibros.numDescargas();
+        this.autor = autor;
     }
 
     public Long getId() {
@@ -27,19 +37,19 @@ public class Libro {
     }
 
 
-    public List<Autor> getAutores() {
-        return autores;
+    public Autor getAutor() {
+        return autor;
     }
 
-    public void setAutores(List<Autor> autores) {
-        this.autores = autores;
+    public void setAutor(Autor autor) {
+        this.autor = autor;
     }
 
-    public List<String> getIdiomas() {
+    public String getIdiomas() {
         return idiomas;
     }
 
-    public void setIdiomas(List<String> idiomas) {
+    public void setIdiomas(String idiomas) {
         this.idiomas = idiomas;
     }
 
@@ -55,7 +65,7 @@ public class Libro {
     public String toString() {
         return "Libro{" +
                 ", titulo='" + titulo + '\'' +
-                ", autores=" + autores +
+                ", autor=" + (autor != null ? autor.getNombre() : "N/A") +
                 ", idiomas=" + idiomas +
                 ", numDescargas=" + numDescargas +
                 '}';

@@ -1,9 +1,14 @@
 package com.alura.challenge_libros.principal;
 
-import com.alura.challenge_libros.model.Datos;
+import com.alura.challenge_libros.model.*;
+import com.alura.challenge_libros.repository.IAutorRepository;
+import com.alura.challenge_libros.repository.ILibroRepository;
 import com.alura.challenge_libros.service.ConsumoAPI;
 import com.alura.challenge_libros.service.ConvierteDatos;
 
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
 import java.util.Scanner;
 
 public class Principal {
@@ -12,6 +17,13 @@ public class Principal {
     private ConsumoAPI consumoApi = new ConsumoAPI();
     private final String URL_BASE= "http://gutendex.com/books/";
     private ConvierteDatos conversor = new ConvierteDatos();
+    private ILibroRepository repositorio;
+    private IAutorRepository autorRepositorio;
+    private List<Libro> librosBuscado;
+    public Principal(ILibroRepository repository, IAutorRepository autorRepository) {
+        this.repositorio = repository;
+        this.autorRepositorio = autorRepository;
+    }
     public void mostrarMenu() {
         var opcion = -1;
         while (opcion != 0) {
@@ -57,11 +69,60 @@ public class Principal {
 
     }
 
-    private void buscarLibroPorTitulo() {
+    private List<DatosLibros> getDatosLibros() {
+        System.out.println("Escribe el titulo del libro :");
+        var tituloLibro = scanner.nextLine();
+        var json = consumoApi.obtenerDatos(URL_BASE + "?search=" + tituloLibro);
+        System.out.println("Respuesta JSON de la API: " + json);
+
+        // Convierte el JSON en un objeto DatosLibros
+        Datos respuesta = conversor.obtenerDatos(json, Datos.class);
+
+        if (respuesta == null || respuesta.respuestaLibros() == null || respuesta.respuestaLibros().isEmpty()) {
+            System.out.println("No se encontraron libros para el título ingresado.");
+            return List.of();
+        }
+        return respuesta.respuestaLibros();
 
     }
 
+    private void buscarLibroPorTitulo(){
+        List<DatosLibros> librosDatos = getDatosLibros();
+
+        if (librosDatos == null || librosDatos.isEmpty()) {
+            System.out.println("No se encontraron libros para el título ingresado.");
+            return;
+        }
+
+        for (DatosLibros datos : librosDatos) {
+            if (datos.autor() == null || datos.autor().isEmpty()) {
+                System.out.println("El libro '" + datos.titulo() + "' no tiene autores registrados.");
+                continue;
+            }
+
+            // Toma el primer autor de la lista de autores
+            DatosAutor datosAutor = datos.autor().get(0);
+
+            // Crea el autor y el libro
+            Autor autor = new Autor(datosAutor);
+            Optional<Autor> autorExistente = autorRepositorio.findAuthorByNombre(autor.getNombre());
+            if (autorExistente.isPresent()) {
+                autor = autorExistente.get(); // Reutiliza el autor existente
+            } else {
+                autor = autorRepositorio.save(autor); // Guarda el autor si no existe
+            }
+            Libro libro = new Libro(datos, autor);
+
+            // Guarda el libro en la base de datos
+            repositorio.save(libro);
+            System.out.println("Libro guardado: " + libro);
+        }
+    }
+
     private void listarLibrosRegistrados() {
+        List<Libro> libros = repositorio.findAll();
+        System.out.println(libros);
+
     }
 
     private void listAuthorsRegistered(){
