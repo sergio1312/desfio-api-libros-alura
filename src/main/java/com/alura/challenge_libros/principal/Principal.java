@@ -72,10 +72,10 @@ public class Principal {
     private List<DatosLibros> getDatosLibros() {
         System.out.println("Escribe el titulo del libro :");
         var tituloLibro = scanner.nextLine();
-        var json = consumoApi.obtenerDatos(URL_BASE + "?search=" + tituloLibro);
+        var json = consumoApi.obtenerDatos(URL_BASE + "?search=" + tituloLibro.replace(" ", "+"));
         System.out.println("Respuesta JSON de la API: " + json);
 
-        // Convierte el JSON en un objeto DatosLibros
+        // Convierte el JSON en un objeto Datos
         Datos respuesta = conversor.obtenerDatos(json, Datos.class);
 
         if (respuesta == null || respuesta.respuestaLibros() == null || respuesta.respuestaLibros().isEmpty()) {
@@ -99,7 +99,6 @@ public class Principal {
                 System.out.println("El libro '" + datos.titulo() + "' no tiene autores registrados.");
                 continue;
             }
-
             // Toma el primer autor de la lista de autores
             DatosAutor datosAutor = datos.autor().get(0);
 
@@ -112,8 +111,6 @@ public class Principal {
                 autor = autorRepositorio.save(autor); // Guarda el autor si no existe
             }
             Libro libro = new Libro(datos, autor);
-
-            // Guarda el libro en la base de datos
             repositorio.save(libro);
             System.out.println("Libro guardado: " + libro);
         }
@@ -126,14 +123,46 @@ public class Principal {
     }
 
     private void listAuthorsRegistered(){
-
+        List<Autor> autores = autorRepositorio.findAll();
+        System.out.println(autores);
     }
 
     private void listAuthorsByLivedYears(){
+        System.out.println("ingresa el año en el que vivio el autor ");
+        int anoAutor = scanner.nextInt();
+        scanner.nextLine();
+
+        if (anoAutor < 100 ){
+            System.out.println("Ingresa un año valido");
+            return;
+        }
+
+        List<Autor> autores = autorRepositorio.findAuthorBetweenYear(anoAutor);
+        if (autores.isEmpty()){
+            System.out.println("Nose encontraron autores vivos en la base de datos con el año :" + anoAutor);
+        }else {
+            autores.forEach(System.out::println);
+        }
 
     }
 
     private void listBooksByIdioma(){
+        System.out.println("""
+                Ingrese el idioma a buscar:
+                    ES -> Español
+                    EN -> Inglés
+                    FR -> Francés
+                    PT -> Portugés
+                """);
+        String idiomaIngresado = scanner.nextLine().trim().toUpperCase();
+
+        List<Libro> libroIdioma = repositorio.findBookByIdiomas(idiomaIngresado);
+
+        if (libroIdioma.isEmpty()) {
+            System.out.println("No se encontraron libros con el idioma: " + idiomaIngresado);
+        } else {
+            libroIdioma.forEach(System.out::println);
+        }
 
     }
 
